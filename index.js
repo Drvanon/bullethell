@@ -98,12 +98,43 @@ function update_drawables( drawables ) {
 
 
 player = new Object();
-enemy = new Object();
-movables = []
-seekers = []
-drawables = []
-radial_colliders = []
+enemies = [];
+movables = [];
+seekers = [];
+drawables = [];
+radial_colliders = [];
 update = true;
+
+class Enemy {
+    constructor (starting_location) {
+        let movable = new Movable(movables);
+        let seeker = new Seeker(seekers, movable, 2, player);
+        let drawable = new Drawable(
+            drawables,
+            (pos) => {
+                ellipse(pos[0], pos[1], 5, 5);
+                fill(120);
+            },
+            seeker.movable
+        );
+        let collider = new RadialCollider(
+            radial_colliders,
+            5,
+            movable,
+            (identifier) => {
+                if (identifier == 'player') {
+                    movables.splice(movables.indexOf(movable), 1);
+                    seekers.splice(seekers.indexOf(seeker, 1));
+                    radial_colliders.splice(radial_colliders.indexOf(collider), 1);
+                    drawables.splice(drawables.indexOf(drawable), 1);
+               }
+            },
+            'enemy'
+        );
+
+        movable.pos = starting_location;
+    }
+}
 
 function init () {
     player.movable = new Movable(movables);
@@ -131,36 +162,11 @@ function init () {
         'player'
     );
 
-    enemy_locations = [ [100, 100], [300, 400], [200, 500] ];
+    enemy_locations = [ [100, 100], [300, 400], [200, 500], [600, 600]];
 
-    enemy_locations.forEach( (loc) => {
-        enemy_movable = new Movable(movables);
-        enemy = new Seeker(seekers, enemy_movable, 2, player);
-        enemy_movable.pos = loc;
-
-        enemy_drawable = new Drawable(
-            drawables,
-            (pos) => {
-                ellipse(pos[0], pos[1], 5, 5);
-                fill(120);
-            },
-            enemy.movable
-        );
-
-        enemy_collider = new RadialCollider(
-            radial_colliders,
-            5,
-            enemy_movable,
-            (id) => {
-                if (id == 'player') {
-                    movables.splice(movables.indexOf(enemy_movable));
-                    seekers.splice(seekers.indexOf(enemy));
-                    radial_colliders.splice(radial_colliders.indexOf(enemy_collider));
-                    drawables.splice(drawables.indexOf(enemy_drawable));
-               }
-            },
-            'enemy'
-        );
+    enemy_locations.forEach( (loc, i) => {
+        enemy = new Enemy(loc);
+        enemies.push(enemy);
     });
 }
 
