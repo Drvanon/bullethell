@@ -16,6 +16,10 @@ function skalar_multiplication(v1, skalar) {
     return v1.map((el) => skalar*el);
 }
 
+function remove_from_array(array, item) {
+    array.splice(array.indexOf(item) , 1);
+}
+
 class Movable {
     constructor (movables) {
         this.pos = [0, 0];
@@ -74,6 +78,7 @@ function update_radial_colliders(colliders) {
 
             distance = vector_length(vector_subtraction(c1.movable.pos, c2.movable.pos));
             if (distance < c1.radius + c2.radius ) {
+                console.log(c1);
                 c1.call_back(c2.identifier);
                 c2.call_back(c1.identifier);
             }
@@ -96,6 +101,115 @@ function update_drawables( drawables ) {
     });
 }
 
+class Timer {
+    constructor (timers, callback, duration, repetitions, repetition_callback) {
+        this.last = Date.now();
+        this.callback = callback;
+        this.duration = duration;
+        this.repetitions = repetitions;
+
+        timers.push(this);
+    }
+}
+
+function update_timers (timers) {
+    timers.forEach((timer) => {
+        if (timer.last - Date.now() > timer.duration) {
+            timer.last = Date.now();
+            if (timer.repetions != 0) {
+                timer.callback();
+            } else {
+                timer.repetition_callback()
+                remove_from_array(timers, timer);
+            }
+
+            if (timer.repetitions != -1 ) {
+                timer.repetitions -= 1;
+            }
+        }
+    });
+}
+
+class ShooterEnemy {
+    constructor(starting_location) {
+        this.movable = new Movable(movables);
+        this.timer = new Timer(
+            timers,
+        );
+        this.collider = new RadialCollider(
+            radial_colliders,
+            15,
+            movable,
+            (identifier) => {
+                if (identifier == 'player') {
+                    remove_from_array(movables, this.movable);
+                    remove_from_array(radial_colliders, this.collider);
+                    remove_from_array(drawables, this.drawable);
+                }
+            },
+            'shooter'
+        );
+        this.drawable = new Drawable(
+            drawables,
+            (pos) => {
+                fill(120, 120, 120);
+                ellipse(pos[0], pos[1], 15, 15);
+            },
+            movable
+        );
+    }
+}
+
+function update_shooters () {
+
+}
+
+class Bullet {
+    constructor (starting_location) {
+        let movable = new Movable(movables);
+        let drawable = new Drawable(
+            drawables,
+            (pos) => {
+                fill(120, 120, 120);
+                ellipse(pos[0], pos[1], 15, 15);
+            },
+            movable
+        );
+    }
+}
+
+class SeekerEnemy {
+    constructor (starting_location) {
+        this.movable = new Movable(movables);
+        this.seeker = new Seeker(seekers, this.movable, 2, player);
+        this.drawable = new Drawable(
+            drawables,
+            (pos) => {
+                fill(120);
+                ellipse(pos[0], pos[1], 5, 5);
+            },
+            this.movable
+        );
+        this.collider = new RadialCollider(
+            radial_colliders,
+            5,
+            this.movable,
+            (identifier) => {
+                if (identifier == 'player') {
+                    console.log(this);
+                    remove_from_array(movables, this.movable);
+                    remove_from_array(seekers, this.seeker);
+                    remove_from_array(radial_colliders, this.collider);
+                    remove_from_array(drawables, this.drawable);
+               }
+            },
+            'seeker'
+        );
+
+        this.movable.pos = starting_location;
+    }
+}
+
 
 player = new Object();
 enemies = [];
@@ -104,37 +218,6 @@ seekers = [];
 drawables = [];
 radial_colliders = [];
 update = true;
-
-class Enemy {
-    constructor (starting_location) {
-        let movable = new Movable(movables);
-        let seeker = new Seeker(seekers, movable, 2, player);
-        let drawable = new Drawable(
-            drawables,
-            (pos) => {
-                ellipse(pos[0], pos[1], 5, 5);
-                fill(120);
-            },
-            seeker.movable
-        );
-        let collider = new RadialCollider(
-            radial_colliders,
-            5,
-            movable,
-            (identifier) => {
-                if (identifier == 'player') {
-                    movables.splice(movables.indexOf(movable), 1);
-                    seekers.splice(seekers.indexOf(seeker, 1));
-                    radial_colliders.splice(radial_colliders.indexOf(collider), 1);
-                    drawables.splice(drawables.indexOf(drawable), 1);
-               }
-            },
-            'enemy'
-        );
-
-        movable.pos = starting_location;
-    }
-}
 
 function init () {
     player.movable = new Movable(movables);
@@ -146,8 +229,8 @@ function init () {
     player.drawable = new Drawable(
         drawables,
         (pos) => {
-            ellipse(pos[0], pos[1], 10, 10);
             fill(0);
+            ellipse(pos[0], pos[1], 10, 10);
         },
         player.movable
     );
@@ -157,15 +240,17 @@ function init () {
         10,
         player.movable,
         (id) => {
-            console.log('You got hit!');
+            player.life -= 10;
         },
         'player'
     );
 
-    enemy_locations = [ [100, 100], [300, 400], [200, 500], [600, 600]];
+    player.life = 100;
+
+    enemy_locations = [ [100, 100], [300, 400], [200, 500], [400, 600]];
 
     enemy_locations.forEach( (loc, i) => {
-        enemy = new Enemy(loc);
+        enemy = new SeekerEnemy(loc);
         enemies.push(enemy);
     });
 }
@@ -182,6 +267,18 @@ function setup () {
 
     createCanvas(640, 480);
     frameRate(30);
+}
+
+function update_stats() {
+    width = 150;
+    height = 50;
+    fill(255);
+    rect(640-width, 0, width, height);
+
+    fill(0);
+    textSize(16);
+    textAlign(LEFT);
+    text('Life: ' + player.life, 640-width, height/2);
 }
 
 function handle_input() {
@@ -208,7 +305,7 @@ function handle_input() {
 
 function keyPressed () {
     if (keyCode == 32) { // SPACEBAR
-        update = false;
+        update = !update;
     }
 }
 
@@ -218,4 +315,6 @@ function draw () {
     if (update) {
         my_loop();
     }
+
+    update_stats();
 }
