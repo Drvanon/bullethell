@@ -78,7 +78,6 @@ function update_radial_colliders(colliders) {
 
             distance = vector_length(vector_subtraction(c1.movable.pos, c2.movable.pos));
             if (distance < c1.radius + c2.radius ) {
-                console.log(c1);
                 c1.call_back(c2.identifier);
                 c2.call_back(c1.identifier);
             }
@@ -114,7 +113,7 @@ class Timer {
 
 function update_timers (timers) {
     timers.forEach((timer) => {
-        if (timer.last - Date.now() > timer.duration) {
+        if (Date.now() - timer.last > timer.duration) {
             timer.last = Date.now();
             if (timer.repetions != 0) {
                 timer.callback();
@@ -131,56 +130,108 @@ function update_timers (timers) {
 }
 
 class ShooterEnemy {
-    constructor(starting_location) {
+    constructor(starting_location, bullet_speed) {
         this.movable = new Movable(movables);
+        this.movable.pos = starting_location;
+
+        this.bullet_speed = bullet_speed;
+
         this.timer = new Timer(
             timers,
+            () => {this.shoot_bullet();},
+            1000,
+            -1
         );
+
         this.collider = new RadialCollider(
             radial_colliders,
             15,
-            movable,
+            this.movable,
             (identifier) => {
                 if (identifier == 'player') {
-                    remove_from_array(movables, this.movable);
-                    remove_from_array(radial_colliders, this.collider);
-                    remove_from_array(drawables, this.drawable);
+                    this.destruct();
                 }
             },
             'shooter'
         );
+
         this.drawable = new Drawable(
             drawables,
             (pos) => {
                 fill(120, 120, 120);
                 ellipse(pos[0], pos[1], 15, 15);
             },
-            movable
+            this.movable
         );
+    }
+
+    shoot_bullet () {
+        let bullet = new Bullet(this.movable.pos, player.movable.pos, this.bullet_speed);
+        bullets.push(bullet);
+    }
+
+    destruct () {
+        remove_from_array(movables, this.movable);
+        remove_from_array(seekers, this.seeker);
+        remove_from_array(radial_colliders, this.collider);
+        remove_from_array(drawables, this.drawable);
+        remove_from_array(timers, this.timer);
     }
 }
 
-function update_shooters () {
-
-}
+function update_shooters () {}
 
 class Bullet {
-    constructor (starting_location) {
-        let movable = new Movable(movables);
-        let drawable = new Drawable(
+    constructor (starting_location, goal, speed, radius=3) {
+        this.radius = radius;
+        this.movable = new Movable(movables);
+        this.movable.pos = starting_location;
+        let direction = vector_subtraction(goal, starting_location);
+        this.movable.vel = skalar_multiplication(direction, speed/vector_length(direction));
+
+        this.collider = new RadialCollider(
+            radial_colliders,
+            this.radius,
+            this.movable, (identifier) => {
+                if (identifier == 'player') {
+                    player.life -= 1;
+                    this.destruct();
+                }
+            },
+            'bullet'
+        );
+
+        this.drawable = new Drawable(
             drawables,
             (pos) => {
-                fill(120, 120, 120);
-                ellipse(pos[0], pos[1], 15, 15);
+                fill(0, 0, 120);
+                ellipse(pos[0], pos[1], this.radius, this.radius);
             },
-            movable
+            this.movable
         );
     }
+
+    destruct() {
+        remove_from_array(drawables, this.drawable);
+        remove_from_array(movables, this.movable);
+        remove_from_array(radial_colliders, this.collider);
+    }
+}
+
+function update_bullets (bullets) {
+    bullets.forEach( (bullet) => {
+        const x = bullet.movable.pos[0];
+        const y = bullet.movable.pos[1];
+        if ( 0 > x > LEVEL_WIDTH || 0 > y > LEVEL_HEIGHT ) {
+        }
+    });
 }
 
 class SeekerEnemy {
     constructor (starting_location) {
         this.movable = new Movable(movables);
+        this.movable.pos = starting_location;
+
         this.seeker = new Seeker(seekers, this.movable, 2, player);
         this.drawable = new Drawable(
             drawables,
@@ -190,33 +241,44 @@ class SeekerEnemy {
             },
             this.movable
         );
+
         this.collider = new RadialCollider(
             radial_colliders,
             5,
             this.movable,
             (identifier) => {
                 if (identifier == 'player') {
-                    console.log(this);
-                    remove_from_array(movables, this.movable);
-                    remove_from_array(seekers, this.seeker);
-                    remove_from_array(radial_colliders, this.collider);
-                    remove_from_array(drawables, this.drawable);
+                    this.destruct();
+                    player.life -= 10;
+               } else if (identifier == 'bullet') {
+                    this.destruct();
                }
             },
             'seeker'
         );
+    }
 
-        this.movable.pos = starting_location;
+    destruct () {
+        remove_from_array(movables, this.movable);
+        remove_from_array(seekers, this.seeker);
+        remove_from_array(radial_colliders, this.collider);
+        remove_from_array(drawables, this.drawable);
     }
 }
 
+LEVEL_WIDTH = 640;
+LEVEL_HEIGHT = 480;
 
 player = new Object();
-enemies = [];
 movables = [];
 seekers = [];
 drawables = [];
 radial_colliders = [];
+timers = [];
+
+seeker_enemies = [];
+shooter_enemies = [];
+bullets = [];
 update = true;
 
 function init () {
@@ -239,20 +301,26 @@ function init () {
         radial_colliders,
         10,
         player.movable,
-        (id) => {
-            player.life -= 10;
-        },
+        (id) => {},
         'player'
     );
 
     player.life = 100;
 
-    enemy_locations = [ [100, 100], [300, 400], [200, 500], [400, 600]];
-
-    enemy_locations.forEach( (loc, i) => {
+    seeker_locations = [ [100, 100], [300, 400], [200, 500], [400, 600]];
+    seeker_locations.forEach( (loc, i) => {
         enemy = new SeekerEnemy(loc);
-        enemies.push(enemy);
+        seeker_enemies.push(enemy);
     });
+
+    shooter_locations =  [ [400, 100], [10, 400]];
+    shooter_locations.forEach(
+        (loc) => {
+            shooter_enemy = new ShooterEnemy(loc, 3);
+            shooter_enemies.push(shooter_enemy);
+        }
+    )
+
 }
 
 function my_loop () {
@@ -260,6 +328,7 @@ function my_loop () {
     seekers = update_seekers(seekers);
     movables = update_movables(movables);
     update_radial_colliders(radial_colliders);
+    update_timers(timers);
 }
 
 function setup () {
