@@ -1,0 +1,30 @@
+{
+  "name": "bullethell",
+  "version": "0.0.1",
+  "description": "A simple game engine written for fun.",
+  "main": "index.js",
+  "dependencies": {
+    "p5": "^0.10.2"
+  },
+  "devDependencies": {
+    "@types/node": "^12.12.7",
+    "fuse-box": "^3.7.1",
+    "typescript": "^3.7.2",
+    "uglify-js": "^3.6.8"
+  },
+  "scripts": {
+    "compile": "tsc",
+    "sketch": "node fuse.js",
+    "dist-os": "node fuse.js dist-open-processing"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Drvanon/bullethell.git"
+  },
+  "author": "Robin A. Dorstijn",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Drvanon/bullethell/issues"
+  },
+  "homepage": "https://github.com/Drvanon/bullethell#readme"
+}
