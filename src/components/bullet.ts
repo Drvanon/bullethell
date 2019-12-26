@@ -19,9 +19,9 @@ export class Bullet implements Component {
     public speed:number,
     public radius:number = 3,
   ) {
-    this.movable = new Movable(starting_location);
     const direction:number[] = util.vector_subtraction(goal, starting_location);
-    this.movable.vel = util.skalar_multiplication(direction, speed/util.vector_length(direction));
+    const velocity:number[] = util.skalar_multiplication(direction, speed/util.vector_length(direction));
+    this.movable = new Movable(starting_location, velocity);
 
     this.collider = new RadialCollider(
       this.radius,

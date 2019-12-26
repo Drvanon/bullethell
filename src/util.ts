@@ -17,5 +17,8 @@ export function skalar_multiplication(v1:number[], skalar:number) {
 }
 
 export function remove_from_array<T>(array:T[], item:T) {
-    array.splice(array.indexOf(item) , 1);
+  const index:number = array.indexOf(item);
+  if (index > 0) {
+    array.splice(index , 1);
+  }
 }
